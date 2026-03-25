@@ -4,7 +4,6 @@ void main() {
   runApp(const MyApp());
 }
 
-// 🧓 Great-Grandparent
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
 
@@ -26,24 +25,32 @@ class SignupPage extends StatefulWidget {
 }
 
 class _SignupPageState extends State<SignupPage> {
-  // 🔑 The Global Key - acts like a remote control for the form
   final _formKey = GlobalKey<FormState>();
-  
-  // 📝 Controllers to track what the user types
   final TextEditingController _nameController = TextEditingController();
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
+  final TextEditingController _confirmPasswordController = TextEditingController();
+  String _selectedAvatar = '😊';
+
+  @override
+  void dispose() {
+    _nameController.dispose();
+    _emailController.dispose();
+    _passwordController.dispose();
+    _confirmPasswordController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold( // 👨 Parent
+    return Scaffold(
       appBar: AppBar(
         title: const Text('Join Us Today for the Cash Money!'),
         backgroundColor: Colors.purple,
       ),
-      body: Padding(
+      body: SingleChildScrollView(
         padding: const EdgeInsets.all(16.0),
-        child: Form( // 👶 Child
+        child: Form(
           key: _formKey,
           child: Column(
             children: [
@@ -52,8 +59,34 @@ class _SignupPageState extends State<SignupPage> {
                 style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
               ),
               const SizedBox(height: 20),
+
               
-              // 👤 Name Field
+              const Text('Pick your avatar:', style: TextStyle(fontSize: 16)),
+              const SizedBox(height: 8),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: ['😊', '🎯', '🔥', '👾'].map((emoji) {
+                  return GestureDetector(
+                    onTap: () => setState(() => _selectedAvatar = emoji),
+                    child: Container(
+                      margin: const EdgeInsets.symmetric(horizontal: 6),
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        border: Border.all(
+                          color: _selectedAvatar == emoji
+                              ? Colors.purple
+                              : Colors.transparent,
+                          width: 2,
+                        ),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Text(emoji, style: const TextStyle(fontSize: 28)),
+                    ),
+                  );
+                }).toList(),
+              ),
+              const SizedBox(height: 20),
+
               TextFormField(
                 controller: _nameController,
                 decoration: const InputDecoration(
@@ -62,15 +95,12 @@ class _SignupPageState extends State<SignupPage> {
                   border: OutlineInputBorder(),
                 ),
                 validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'Please enter your name';
-                  }
+                  if (value == null || value.isEmpty) return 'Please enter your name';
                   return null;
                 },
               ),
               const SizedBox(height: 16),
-              
-              // 📧 Email Field
+
               TextFormField(
                 controller: _emailController,
                 decoration: const InputDecoration(
@@ -79,18 +109,14 @@ class _SignupPageState extends State<SignupPage> {
                   border: OutlineInputBorder(),
                 ),
                 validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'Please enter your email';
-                  }
-                  if (!value.contains('@')) {
-                    return 'Please enter a valid email';
-                  }
+                  if (value == null || value.isEmpty) return 'Please enter your email';
+                  final emailRegex = RegExp(r'^[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}$');
+                  if (!emailRegex.hasMatch(value)) return 'Please enter a valid email';
                   return null;
                 },
               ),
               const SizedBox(height: 16),
-              
-              // 🔒 Password Field
+
               TextFormField(
                 controller: _passwordController,
                 obscureText: true,
@@ -100,18 +126,29 @@ class _SignupPageState extends State<SignupPage> {
                   border: OutlineInputBorder(),
                 ),
                 validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'Please enter a password';
-                  }
-                  if (value.length < 6) {
-                    return 'Password must be at least 6 characters';
-                  }
+                  if (value == null || value.isEmpty) return 'Please enter a password';
+                  if (value.length < 6) return 'Password must be at least 6 characters';
+                  return null;
+                },
+              ),
+              const SizedBox(height: 16),
+
+              TextFormField(
+                controller: _confirmPasswordController,
+                obscureText: true,
+                decoration: const InputDecoration(
+                  labelText: 'Confirm Password',
+                  prefixIcon: Icon(Icons.lock_outline),
+                  border: OutlineInputBorder(),
+                ),
+                validator: (value) {
+                  if (value == null || value.isEmpty) return 'Please confirm your password';
+                  if (value != _passwordController.text) return 'Passwords do not match';
                   return null;
                 },
               ),
               const SizedBox(height: 24),
-              
-              // 🚀 Sign Up Button
+
               ElevatedButton(
                 onPressed: () {
                   if (_formKey.currentState!.validate()) {
@@ -121,16 +158,93 @@ class _SignupPageState extends State<SignupPage> {
                         backgroundColor: Colors.green,
                       ),
                     );
+                    Future.delayed(const Duration(seconds: 1), () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => WelcomeScreen(
+                            name: _nameController.text,
+                            avatar: _selectedAvatar,
+                          ),
+                        ),
+                      );
+                    });
                   }
                 },
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.purple,
                   padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 12),
                 ),
-                child: const Text(
-                  'Sign Up',
-                  style: TextStyle(fontSize: 18),
+                child: const Text('Sign Up', style: TextStyle(fontSize: 18)),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class WelcomeScreen extends StatefulWidget {
+  final String name;
+  final String avatar;
+
+  const WelcomeScreen({super.key, required this.name, required this.avatar});
+
+  @override
+  State<WelcomeScreen> createState() => _WelcomeScreenState();
+}
+
+class _WelcomeScreenState extends State<WelcomeScreen>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+  late Animation<double> _fadeIn;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 900),
+    );
+    _fadeIn = CurvedAnimation(parent: _controller, curve: Curves.easeIn);
+    _controller.forward();
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Colors.purple[50],
+      appBar: AppBar(
+        backgroundColor: Colors.purple,
+        title: const Text('Welcome!'),
+      ),
+      body: Center(
+        child: FadeTransition(
+          opacity: _fadeIn,
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Text(widget.avatar, style: const TextStyle(fontSize: 80)),
+              const SizedBox(height: 24),
+              Text(
+                'Welcome, ${widget.name}!',
+                style: const TextStyle(
+                  fontSize: 28,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.purple,
                 ),
+              ),
+              const SizedBox(height: 12),
+              const Text(
+                'Your account has been created.',
+                style: TextStyle(fontSize: 16, color: Colors.black54),
               ),
             ],
           ),
